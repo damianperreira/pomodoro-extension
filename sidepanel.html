@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div class="sidebar-container">
+
+    <!-- Task Banner -->
+    <div class="task-banner" id="taskBanner">
+      <span class="task-banner-label">Working on:</span>
+      <span class="task-banner-name" id="taskBannerName">No task selected</span>
+    </div>
+
+    <!-- Timer Section -->
+    <div class="timer-section">
+      <div class="mode-toggle">
+        <button class="mode-btn active" data-mode="work" id="modeWork">Focus</button>
+        <button class="mode-btn" data-mode="break" id="modeBreak">Break</button>
+      </div>
+      <div class="timer-ring-container">
+        <svg class="timer-ring" viewBox="0 0 200 200">
+          <circle class="ring-bg" cx="100" cy="100" r="90" />
+          <circle class="ring-progress" id="ringProgress" cx="100" cy="100" r="90"
+            stroke-dasharray="565.49" stroke-dashoffset="0" />
+        </svg>
+        <div class="timer-inner">
+          <div class="timer-display" id="timerDisplay">25:00</div>
+          <div class="session-type" id="sessionType">focus</div>
+        </div>
+      </div>
+
+      <div class="timer-controls">
+        <button id="resetBtn" class="btn-outline">Reset</button>
+        <button id="startBtn" class="btn-filled">Start</button>
+        <button id="pauseBtn" class="btn-outline">Pause</button>
+      </div>
+
+      <div class="session-dots" id="sessionDots">
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+      </div>
+
+      <div class="timer-settings">
+        <div class="setting-group">
+          <label for="workTime">Work</label>
+          <input type="number" id="workTime" value="25" min="1" max="60">
+          <span>min</span>
+        </div>
+        <div class="setting-group">
+          <label for="breakTime">Break</label>
+          <input type="number" id="breakTime" value="5" min="1" max="30">
+          <span>min</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tasks Section -->
+    <div class="section tasks-section">
+      <h3>Tasks</h3>
+      <div class="task-input">
+        <input type="text" id="taskInput" placeholder="Add a new task..." maxlength="200" aria-label="New task">
+        <button id="addTaskBtn" class="btn-add">+</button>
+      </div>
+      <div class="task-stats">
+        <span id="taskStats">0 of 0 completed</span>
+      </div>
+      <ul id="taskList" class="task-list"></ul>
+    </div>
+
+    <!-- Music Section -->
+    <div class="section music-section">
+      <div class="music-header">
+        <h3>Music</h3>
+        <div class="music-tabs">
+          <button class="music-tab active" data-tab="sounds">Sounds</button>
+          <button class="music-tab" data-tab="radio">Radio</button>
+        </div>
+      </div>
+
+      <!-- Sounds Tab -->
+      <div class="tab-content" id="tabSounds">
+        <div class="music-controls">
+          <select id="musicSelect" class="music-select" aria-label="Music type">
+            <option value="">Select type...</option>
+            <option value="focus">Focus Sounds</option>
+            <option value="nature">Nature Sounds</option>
+            <option value="white-noise">White Noise</option>
+            <option value="rain">Rain Sounds</option>
+          </select>
+          <button id="musicToggle" class="btn-outline btn-small">Play</button>
+        </div>
+      </div>
+
+      <!-- Radio Tab -->
+      <div class="tab-content hidden" id="tabRadio">
+        <div class="radio-categories">
+          <button class="radio-cat active" data-tag="ambient">Ambient</button>
+          <button class="radio-cat" data-tag="lofi">Lo-fi</button>
+          <button class="radio-cat" data-tag="classical">Classical</button>
+          <button class="radio-cat" data-tag="jazz">Jazz</button>
+          <button class="radio-cat" data-tag="chill">Chill</button>
+          <button class="radio-cat" data-tag="nature">Nature</button>
+        </div>
+        <div class="radio-list" id="radioList">
+          <div class="radio-loading" id="radioLoading">Select a genre to load stations</div>
+        </div>
+      </div>
+
+      <!-- Now Playing -->
+      <div class="now-playing hidden" id="nowPlaying">
+        <span class="now-playing-icon">&#9835;</span>
+        <span class="now-playing-name" id="nowPlayingName"></span>
+        <button class="btn-stop" id="stopAll" aria-label="Stop playback">&#10005;</button>
+      </div>
+
+      <!-- Volume (shared) -->
+      <div class="volume-control">
+        <span class="volume-icon">&#9834;</span>
+        <input type="range" id="volumeSlider" min="0" max="100" value="50" aria-label="Volume">
+        <span id="volumeLabel">50%</span>
+      </div>
+    </div>
+
+    <!-- Statistics Section -->
+    <div class="section stats-section">
+      <h3>Today</h3>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="stat-number" id="completedPomodoros">0</span>
+          <span class="stat-label">Pomodoros</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number" id="focusTime">0m</span>
+          <span class="stat-label">Focus Time</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <script src="sidepanel.js"></script>
+</body>
+</html>
