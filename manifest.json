@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Pomodoro Timer with Music & Tasks",
   "version": "1.0",
-  "description": "A Pomodoro timer with music player and task management in sidebar",
+  "description": "Pomodoro timer with task tracking, ambient sounds, and internet radio -- all in your sidebar.",
   "permissions": [
     "storage",
     "notifications",

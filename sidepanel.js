@@ -55,7 +55,7 @@ class PomodoroTimer {
     this.loadTasks();
     this.updateDisplay();
     this.updateRing();
-    this.updateSessionDots();
+
     this.updateBanner();
   }
 
@@ -184,13 +184,6 @@ class PomodoroTimer {
     this.ringProgress.style.strokeDashoffset = offset;
   }
 
-  updateSessionDots() {
-    const dots = document.querySelectorAll('.dot');
-    dots.forEach((dot, i) => {
-      dot.classList.toggle('filled', i < this.completedPomodoros % 4);
-    });
-  }
-
   updateBanner() {
     const active = this.tasks.find(t => t.id === this.activeTaskId && !t.completed);
     if (active) {
@@ -219,7 +212,7 @@ class PomodoroTimer {
       this.totalFocusTime += this.workTime;
       this.updateStats();
       this.saveStats();
-      this.updateSessionDots();
+  
     }
 
     try {
@@ -295,7 +288,7 @@ class PomodoroTimer {
         this.totalFocusTime = result.totalFocusTime || 0;
       }
       this.updateStats();
-      this.updateSessionDots();
+  
     });
   }
 

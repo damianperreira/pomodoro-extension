@@ -201,26 +201,6 @@ body {
   cursor: default;
 }
 
-/* ---- Session Dots ---- */
-
-.session-dots {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
-}
-
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--border);
-  transition: background 0.2s ease;
-}
-
-.dot.filled {
-  background: var(--accent);
-}
-
 /* ---- Timer Settings ---- */
 
 .timer-settings {
