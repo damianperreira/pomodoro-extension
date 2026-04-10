@@ -436,10 +436,10 @@ class PomodoroTimer {
     }
 
     const sources = {
-      'focus': 'sounds/focus.mp3',
-      'nature': 'sounds/nature.mp3',
-      'white-noise': 'sounds/white-noise.mp3',
-      'rain': 'sounds/rain.mp3'
+      'focus': 'sounds/focus.wav',
+      'nature': 'sounds/nature.wav',
+      'white-noise': 'sounds/white-noise.wav',
+      'rain': 'sounds/rain.wav'
     };
 
     const labels = {
