@@ -436,10 +436,22 @@ class PomodoroTimer {
     }
 
     const sources = {
-      'focus': 'sounds/focus.wav',
-      'nature': 'sounds/nature.wav',
-      'white-noise': 'sounds/white-noise.wav',
-      'rain': 'sounds/rain.wav'
+      'focus': [
+        'https://ice5.somafm.com/dronezone-128-mp3',
+        'http://radio.stereoscenic.com/asp-h'
+      ],
+      'nature': [
+        'https://purenature-mynoise.radioca.st/stream',
+        'https://nature-rex.radioca.st/stream'
+      ],
+      'white-noise': [
+        'http://uk1.internet-radio.com:8280/stream',
+        'http://uk1.internet-radio.com:8004/'
+      ],
+      'rain': [
+        'https://maggie.torontocast.com:2020/stream/natureradiorain',
+        'http://rainyday.radio.mynoise.net/'
+      ]
     };
 
     const labels = {
@@ -450,17 +462,30 @@ class PomodoroTimer {
     };
 
     this.stopAll();
+    this._playSoundFromList(sources[selected], 0, labels[selected]);
+  }
 
-    this.audio = new Audio(sources[selected]);
-    this.audio.loop = true;
+  _playSoundFromList(urls, index, label) {
+    if (index >= urls.length) {
+      console.error('All sound streams failed for:', label);
+      return;
+    }
+
+    this.audio = new Audio(urls[index]);
     this.audio.volume = this.volumeSlider.value / 100;
+    this.audio.onerror = () => {
+      console.warn('Stream failed, trying fallback:', urls[index]);
+      this.audio = null;
+      this._playSoundFromList(urls, index + 1, label);
+    };
     this.audio.play().then(() => {
       this.isPlaying = true;
-      this.currentSource = { type: 'sound', name: labels[selected] };
+      this.currentSource = { type: 'sound', name: label };
       this.musicToggle.textContent = 'Stop';
-      this.showNowPlaying(labels[selected]);
-    }).catch((err) => {
-      console.error('Failed to play sound:', err);
+      this.showNowPlaying(label);
+    }).catch(() => {
+      this.audio = null;
+      this._playSoundFromList(urls, index + 1, label);
     });
   }
 
