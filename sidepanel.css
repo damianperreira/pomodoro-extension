@@ -104,8 +104,8 @@ body {
 
 .timer-ring-container {
   position: relative;
-  width: 200px;
-  height: 200px;
+  width: 220px;
+  height: 220px;
   margin-bottom: 20px;
 }
 
@@ -117,16 +117,16 @@ body {
 
 .ring-bg {
   fill: none;
-  stroke: var(--teal-light);
-  stroke-width: 8;
+  stroke: #d0ede8;
+  stroke-width: 18;
 }
 
 .ring-progress {
   fill: none;
   stroke: var(--teal-ring);
-  stroke-width: 8;
+  stroke-width: 18;
   stroke-linecap: round;
-  transition: stroke-dashoffset 0.4s ease;
+  transition: stroke-dashoffset 1s linear;
 }
 
 .timer-inner {

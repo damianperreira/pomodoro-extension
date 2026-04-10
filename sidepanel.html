@@ -21,10 +21,24 @@
         <button class="mode-btn" data-mode="break" id="modeBreak">Break</button>
       </div>
       <div class="timer-ring-container">
-        <svg class="timer-ring" viewBox="0 0 200 200">
-          <circle class="ring-bg" cx="100" cy="100" r="90" />
-          <circle class="ring-progress" id="ringProgress" cx="100" cy="100" r="90"
-            stroke-dasharray="565.49" stroke-dashoffset="0" />
+        <svg class="timer-ring" viewBox="0 0 220 220">
+          <defs>
+            <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#2a9d8f" />
+              <stop offset="100%" stop-color="#45c4b0" />
+            </linearGradient>
+            <filter id="ringGlow">
+              <feGaussianBlur stdDeviation="3" result="glow" />
+              <feMerge>
+                <feMergeNode in="glow" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <circle class="ring-bg" cx="110" cy="110" r="97" />
+          <circle class="ring-progress" id="ringProgress" cx="110" cy="110" r="97"
+            stroke="url(#ringGradient)" filter="url(#ringGlow)"
+            stroke-dasharray="609.47" stroke-dashoffset="0" />
         </svg>
         <div class="timer-inner">
           <div class="timer-display" id="timerDisplay">25:00</div>

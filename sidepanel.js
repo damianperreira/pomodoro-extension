@@ -24,7 +24,7 @@ class PomodoroTimer {
     this.radioStations = [];
 
     // Ring
-    this.ringCircumference = 2 * Math.PI * 90; // r=90
+    this.ringCircumference = 2 * Math.PI * 97; // r=97
 
     // DOM elements
     this.timerDisplay = document.getElementById('timerDisplay');
