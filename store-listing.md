@@ -2,26 +2,28 @@
 
 Reference document for the Developer Dashboard submission fields.
 
-## Short description (manifest)
+## Short description (manifest, under 132 chars)
 
-> Pomodoro timer with task tracking, ambient sounds, and internet radio -- all in your sidebar.
+> Free focus timer with task tracking, ambient sounds, and internet radio -- right in your Chrome sidebar.
 
 ## Detailed description
 
-A focused productivity timer that lives in Chrome's side panel. Set a work session, pick a task, and start the clock -- complete with ambient sound streams and live internet radio to keep you in the zone.
+A focused productivity timer that lives in Chrome's side panel. Set a work session, pick a task, and start the clock — complete with ambient sound streams and live internet radio to keep you in the zone.
 
 **Features**
-
-- Configurable work (1-60 min) and break (1-30 min) durations
+- Configurable work (1–60 min) and break (1–30 min) durations
 - Visual countdown with animated progress ring
 - Focus / Break mode toggle
-- Task management with active-task banner
+- Task management with active-task banner showing what you're working on
 - Curated ambient streams: Focus, Nature, White Noise, Rain (SomaFM, MyNoise, and more)
 - Internet radio browser with 6 genres (Ambient, Lo-fi, Classical, Jazz, Chill, Nature) powered by the open-source Radio Browser API
 - Daily statistics: completed pomodoros and total focus time
-- Desktop notifications when sessions end
+- Desktop notifications when sessions end — even if the sidebar is closed
+- Timer keeps running in the background via Chrome Alarms
 
-**Your data stays with you.** Tasks and stats are saved locally via Chrome's built-in sync storage. No accounts, no analytics, no tracking.
+**Your data stays with you.** Tasks and stats are saved locally via Chrome's built-in sync storage. No accounts, no analytics, no tracking. See our privacy policy for details.
+
+**100% free. No ads. Open source.**
 
 ## Permission justifications
 
@@ -31,10 +33,13 @@ Saves your tasks, timer settings, and daily statistics so they persist across br
 ### notifications
 Sends a desktop notification when your focus or break session ends, so you never miss a transition even if the browser is in the background.
 
+### alarms
+Keeps the timer running accurately in the background when the sidebar is closed. A one-shot alarm fires at the session end time to trigger the completion notification.
+
 ### sidePanel
 The entire extension UI lives in Chrome's side panel, giving you quick access without opening a new tab or popup.
 
-### host_permissions: de1.api.radio-browser.info
+### host_permissions: *.api.radio-browser.info
 This host permission allows the extension to query the Radio Browser API (https://www.radio-browser.info), an open-source community database of internet radio stations. When a user opens the Radio tab and selects a genre, the extension sends a search request to this API to retrieve a list of matching stations. Only the genre tag is sent as a query parameter. No user data, personal information, or browsing history is transmitted.
 
 ## CSP justification (media-src http://* https://*)

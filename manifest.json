@@ -2,14 +2,16 @@
   "manifest_version": 3,
   "name": "Pomodoro Timer with Music & Tasks",
   "version": "1.0",
-  "description": "Pomodoro timer with task tracking, ambient sounds, and internet radio -- all in your sidebar.",
+  "version_name": "1.0.0",
+  "description": "Free focus timer with task tracking, ambient sounds, and internet radio -- right in your Chrome sidebar.",
   "permissions": [
     "storage",
     "notifications",
+    "alarms",
     "sidePanel"
   ],
   "host_permissions": [
-    "https://de1.api.radio-browser.info/*"
+    "https://*.api.radio-browser.info/*"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'none'; media-src 'self' http://* https://*"

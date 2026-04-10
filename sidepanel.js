@@ -55,8 +55,8 @@ class PomodoroTimer {
     this.loadTasks();
     this.updateDisplay();
     this.updateRing();
-
     this.updateBanner();
+    this.syncWithBackground();
   }
 
   bindEvents() {
@@ -132,6 +132,9 @@ class PomodoroTimer {
     this.updateDisplay();
     this.updateRing();
     this.updateModeToggle();
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({ action: 'resetTimer' });
+    }
   }
 
   updateModeToggle() {
@@ -140,14 +143,111 @@ class PomodoroTimer {
     this.sessionType.textContent = this.isWorkSession ? 'focus' : 'break';
   }
 
+  syncWithBackground() {
+    if (!chrome?.runtime?.sendMessage) return;
+
+    chrome.runtime.sendMessage({ action: 'getTimerState' }, (state) => {
+      if (chrome.runtime.lastError || !state) return;
+
+      // Handle a session that completed while sidebar was closed
+      if (state.timerSessionComplete) {
+        const wasWork = state.timerCompletedWasWork;
+        this.workTime = state.timerWorkTime || 25;
+        this.breakTime = state.timerBreakTime || 5;
+        this.isWorkSession = !wasWork; // already flipped
+        this.timeLeft = this.isWorkSession ? this.workTime * 60 : this.breakTime * 60;
+        this.totalTime = this.timeLeft;
+        this.isRunning = false;
+        this.workTimeInput.value = this.workTime;
+        this.breakTimeInput.value = this.breakTime;
+        this.updateDisplay();
+        this.updateRing();
+        this.updateModeToggle();
+        this.startBtn.disabled = false;
+        // Reload stats since background updated them
+        this.loadStats();
+        // Clear the flag
+        chrome.storage.local.set({ timerSessionComplete: false });
+        return;
+      }
+
+      if (state.timerRunning && state.timerEndTime) {
+        // Timer is actively running — sync to it
+        const remaining = Math.max(0, Math.round((state.timerEndTime - Date.now()) / 1000));
+        this.totalTime = state.timerTotalSeconds || this.totalTime;
+        this.isWorkSession = state.timerIsWorkSession;
+        this.workTime = state.timerWorkTime || this.workTime;
+        this.breakTime = state.timerBreakTime || this.breakTime;
+        this.workTimeInput.value = this.workTime;
+        this.breakTimeInput.value = this.breakTime;
+
+        if (remaining <= 0) {
+          // Alarm should have fired — treat as complete
+          this.completeSession();
+          return;
+        }
+
+        this.timeLeft = remaining;
+        this.isRunning = true;
+        this.startBtn.disabled = true;
+        this.updateDisplay();
+        this.updateRing();
+        this.updateModeToggle();
+        this._startDisplayInterval();
+
+      } else if (!state.timerRunning && state.timerRemainingSeconds != null) {
+        // Timer is paused — show remaining time
+        this.timeLeft = state.timerRemainingSeconds;
+        this.totalTime = state.timerTotalSeconds || this.totalTime;
+        this.isWorkSession = state.timerIsWorkSession;
+        this.workTime = state.timerWorkTime || this.workTime;
+        this.breakTime = state.timerBreakTime || this.breakTime;
+        this.workTimeInput.value = this.workTime;
+        this.breakTimeInput.value = this.breakTime;
+        this.isRunning = false;
+        this.startBtn.disabled = false;
+        this.updateDisplay();
+        this.updateRing();
+        this.updateModeToggle();
+      }
+    });
+  }
+
   startTimer() {
     if (this.isRunning) return;
     this.isRunning = true;
     this.startBtn.disabled = true;
+
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'startTimer',
+        remainingSeconds: this.timeLeft,
+        totalSeconds: this.totalTime,
+        isWorkSession: this.isWorkSession,
+        workTime: this.workTime,
+        breakTime: this.breakTime
+      });
+    }
+
+    this._startDisplayInterval();
+  }
+
+  _startDisplayInterval() {
+    clearInterval(this.timer);
     this.timer = setInterval(() => {
-      this.timeLeft--;
+      if (chrome?.runtime?.sendMessage) {
+        // Sync from the authoritative end time
+        chrome.runtime.sendMessage({ action: 'getTimerState' }, (state) => {
+          if (chrome.runtime.lastError || !state || !state.timerEndTime) return;
+          this.timeLeft = Math.max(0, Math.round((state.timerEndTime - Date.now()) / 1000));
+        });
+      } else {
+        this.timeLeft--;
+      }
+
       this.updateDisplay();
       this.updateRing();
+
       if (this.timeLeft <= 0) {
         this.completeSession();
       }
@@ -159,6 +259,13 @@ class PomodoroTimer {
     this.isRunning = false;
     clearInterval(this.timer);
     this.startBtn.disabled = false;
+
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'pauseTimer',
+        remainingSeconds: this.timeLeft
+      });
+    }
   }
 
   resetTimer() {
@@ -169,6 +276,10 @@ class PomodoroTimer {
     this.updateDisplay();
     this.updateRing();
     this.startBtn.disabled = false;
+
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({ action: 'resetTimer' });
+    }
   }
 
   updateDisplay() {
@@ -207,30 +318,21 @@ class PomodoroTimer {
     this.isRunning = false;
     clearInterval(this.timer);
 
+    // Update local stats for immediate UI feedback
     if (this.isWorkSession) {
       this.completedPomodoros++;
       this.totalFocusTime += this.workTime;
       this.updateStats();
-      this.saveStats();
-  
+      // Don't saveStats here — background.js handles persistence on alarm fire
     }
 
+    // Play notification sound in sidebar (background handles the notification itself)
     try {
       const notifSound = new Audio('sounds/notification.mp3');
       notifSound.play();
     } catch (_) { /* audio may not be available */ }
 
-    if (chrome?.notifications?.create) {
-      chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'icons/icon48.png',
-        title: 'Pomodoro Timer',
-        message: this.isWorkSession
-          ? 'Work session complete! Time for a break.'
-          : 'Break time over! Ready to work?'
-      });
-    }
-
+    // Switch session
     this.isWorkSession = !this.isWorkSession;
     this.timeLeft = this.isWorkSession ? this.workTime * 60 : this.breakTime * 60;
     this.totalTime = this.timeLeft;
@@ -239,6 +341,11 @@ class PomodoroTimer {
     this.startBtn.textContent = 'Start';
     this.startBtn.disabled = false;
     this.updateModeToggle();
+
+    // Clear background timer state
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({ action: 'resetTimer' });
+    }
   }
 
   // --- Stats ---
