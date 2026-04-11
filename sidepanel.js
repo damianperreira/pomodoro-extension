@@ -537,20 +537,20 @@ class PomodoroTimer {
 
     const sources = {
       'focus': [
-        'https://ice5.somafm.com/dronezone-128-mp3',
-        'http://radio.stereoscenic.com/asp-h'
+        'https://ice1.somafm.com/dronezone-128-mp3',
+        'https://ice2.somafm.com/groovesalad-128-mp3'
       ],
       'nature': [
         'https://purenature-mynoise.radioca.st/stream',
         'https://nature-rex.radioca.st/stream'
       ],
       'white-noise': [
-        'http://uk1.internet-radio.com:8280/stream',
-        'http://uk1.internet-radio.com:8004/'
+        'https://whitenoise-mynoise.radioca.st/stream',
+        'https://zengardenradio-mynoise.radioca.st/stream'
       ],
       'rain': [
         'https://maggie.torontocast.com:2020/stream/natureradiorain',
-        'http://rainyday.radio.mynoise.net/'
+        'https://rainyday-mynoise.radioca.st/stream'
       ]
     };
 
@@ -595,7 +595,7 @@ class PomodoroTimer {
     this.radioList.innerHTML = '<div class="radio-loading">Loading stations...</div>';
 
     try {
-      const url = `https://de1.api.radio-browser.info/json/stations/search?tag=${encodeURIComponent(tag)}&limit=20&order=votes&reverse=true&hidebroken=true&has_extended_info=false`;
+      const url = `https://all.api.radio-browser.info/json/stations/search?tag=${encodeURIComponent(tag)}&limit=20&order=votes&reverse=true&hidebroken=true&has_extended_info=false`;
       const resp = await fetch(url);
       if (!resp.ok) throw new Error('API request failed');
       const stations = await resp.json();
