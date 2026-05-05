@@ -1,4 +1,15 @@
+// Inline SVG used when a station's favicon URL is missing or fails to load.
+// Music-note glyph on a transparent background; sized via CSS to fit the 28x28 icon slot.
+// Only `#` is percent-encoded; modern browsers accept the rest of the SVG verbatim in a data URI.
+const FALLBACK_STATION_ICON =
+  "data:image/svg+xml;utf8," +
+  "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239ca3af'>" +
+  "<path d='M12 3v10.55a4 4 0 1 0 2 3.45V7h4V3z'/>" +
+  "</svg>";
+
 class PomodoroTimer {
+  static FALLBACK_ICON = FALLBACK_STATION_ICON;
+
   constructor() {
     // Timer state
     this.workTime = 25;
@@ -650,15 +661,15 @@ class PomodoroTimer {
 
       const icon = document.createElement('div');
       icon.className = 'radio-station-icon';
-      if (station.favicon) {
-        const img = document.createElement('img');
-        img.src = station.favicon;
-        img.alt = '';
-        img.onerror = () => { img.replaceWith(Object.assign(document.createElement('span'), { textContent: '📻' })); };
-        icon.appendChild(img);
-      } else {
-        icon.innerHTML = '<span>📻</span>';
-      }
+      const img = document.createElement('img');
+      img.src = station.favicon || PomodoroTimer.FALLBACK_ICON;
+      img.alt = '';
+      img.onerror = function () {
+        // Avoid an infinite error loop if the fallback itself were to fail
+        this.onerror = null;
+        this.src = PomodoroTimer.FALLBACK_ICON;
+      };
+      icon.appendChild(img);
 
       const info = document.createElement('div');
       info.className = 'radio-station-info';

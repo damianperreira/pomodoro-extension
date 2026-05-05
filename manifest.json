@@ -3,7 +3,7 @@
   "name": "Pomodoro Timer with Music & Tasks",
   "version": "1.0",
   "version_name": "1.0.0",
-  "description": "Focus timer with task tracking, ambient sounds, and internet radio -- right in your Chrome sidebar.",
+  "description": "Free Pomodoro focus timer with task tracking, ambient sounds, and live radio — right in your Chrome sidebar.",
   "homepage_url": "https://github.com/damianperreira/pomodoro-extension",
   "permissions": [
     "storage",
