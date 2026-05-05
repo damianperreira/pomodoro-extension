@@ -59,6 +59,25 @@ class PomodoroTimer {
     this.syncWithBackground();
   }
 
+  // Wraps chrome.runtime.sendMessage so a dropped service-worker connection
+  // never surfaces as an unhandled promise rejection. The callback still fires
+  // with `undefined` if the send failed; callers must handle that case.
+  _send(msg, cb) {
+    if (!chrome?.runtime?.sendMessage) {
+      if (cb) cb(undefined);
+      return;
+    }
+    try {
+      const ret = chrome.runtime.sendMessage(msg, (resp) => {
+        void chrome.runtime.lastError; // mark as read
+        if (cb) cb(resp);
+      });
+      if (ret && typeof ret.catch === 'function') ret.catch(() => {});
+    } catch (_) {
+      if (cb) cb(undefined);
+    }
+  }
+
   bindEvents() {
     this.startBtn.addEventListener('click', () => this.startTimer());
     this.pauseBtn.addEventListener('click', () => this.pauseTimer());
@@ -132,9 +151,7 @@ class PomodoroTimer {
     this.updateDisplay();
     this.updateRing();
     this.updateModeToggle();
-    if (chrome?.runtime?.sendMessage) {
-      chrome.runtime.sendMessage({ action: 'resetTimer' });
-    }
+    this._send({ action: 'resetTimer' });
   }
 
   updateModeToggle() {
@@ -144,10 +161,8 @@ class PomodoroTimer {
   }
 
   syncWithBackground() {
-    if (!chrome?.runtime?.sendMessage) return;
-
-    chrome.runtime.sendMessage({ action: 'getTimerState' }, (state) => {
-      if (chrome.runtime.lastError || !state) return;
+    this._send({ action: 'getTimerState' }, (state) => {
+      if (!state) return;
 
       // Handle a session that completed while sidebar was closed
       if (state.timerSessionComplete) {
@@ -218,16 +233,14 @@ class PomodoroTimer {
     this.isRunning = true;
     this.startBtn.disabled = true;
 
-    if (chrome?.runtime?.sendMessage) {
-      chrome.runtime.sendMessage({
-        action: 'startTimer',
-        remainingSeconds: this.timeLeft,
-        totalSeconds: this.totalTime,
-        isWorkSession: this.isWorkSession,
-        workTime: this.workTime,
-        breakTime: this.breakTime
-      });
-    }
+    this._send({
+      action: 'startTimer',
+      remainingSeconds: this.timeLeft,
+      totalSeconds: this.totalTime,
+      isWorkSession: this.isWorkSession,
+      workTime: this.workTime,
+      breakTime: this.breakTime
+    });
 
     this._startDisplayInterval();
   }
@@ -237,8 +250,8 @@ class PomodoroTimer {
     this.timer = setInterval(() => {
       if (chrome?.runtime?.sendMessage) {
         // Sync from the authoritative end time
-        chrome.runtime.sendMessage({ action: 'getTimerState' }, (state) => {
-          if (chrome.runtime.lastError || !state || !state.timerEndTime) return;
+        this._send({ action: 'getTimerState' }, (state) => {
+          if (!state || !state.timerEndTime) return;
           this.timeLeft = Math.max(0, Math.round((state.timerEndTime - Date.now()) / 1000));
         });
       } else {
@@ -260,12 +273,10 @@ class PomodoroTimer {
     clearInterval(this.timer);
     this.startBtn.disabled = false;
 
-    if (chrome?.runtime?.sendMessage) {
-      chrome.runtime.sendMessage({
-        action: 'pauseTimer',
-        remainingSeconds: this.timeLeft
-      });
-    }
+    this._send({
+      action: 'pauseTimer',
+      remainingSeconds: this.timeLeft
+    });
   }
 
   resetTimer() {
@@ -277,9 +288,7 @@ class PomodoroTimer {
     this.updateRing();
     this.startBtn.disabled = false;
 
-    if (chrome?.runtime?.sendMessage) {
-      chrome.runtime.sendMessage({ action: 'resetTimer' });
-    }
+    this._send({ action: 'resetTimer' });
   }
 
   updateDisplay() {
@@ -328,7 +337,7 @@ class PomodoroTimer {
 
     // Play notification sound in sidebar (background handles the notification itself)
     try {
-      const notifSound = new Audio('sounds/notification.mp3');
+      const notifSound = new Audio('sounds/notification.wav');
       notifSound.play();
     } catch (_) { /* audio may not be available */ }
 
@@ -343,9 +352,7 @@ class PomodoroTimer {
     this.updateModeToggle();
 
     // Clear background timer state
-    if (chrome?.runtime?.sendMessage) {
-      chrome.runtime.sendMessage({ action: 'resetTimer' });
-    }
+    this._send({ action: 'resetTimer' });
   }
 
   // --- Stats ---
@@ -545,8 +552,9 @@ class PomodoroTimer {
         'https://nature-rex.radioca.st/stream'
       ],
       'white-noise': [
-        'https://whitenoise-mynoise.radioca.st/stream',
-        'https://zengardenradio-mynoise.radioca.st/stream'
+        'https://ice1.somafm.com/deepspaceone-128-mp3',
+        'https://ice2.somafm.com/deepspaceone-128-mp3',
+        'https://ice1.somafm.com/spacestation-128-mp3'
       ],
       'rain': [
         'https://maggie.torontocast.com:2020/stream/natureradiorain',
@@ -594,24 +602,35 @@ class PomodoroTimer {
   async loadRadioStations(tag) {
     this.radioList.innerHTML = '<div class="radio-loading">Loading stations...</div>';
 
-    try {
-      const url = `https://all.api.radio-browser.info/json/stations/search?tag=${encodeURIComponent(tag)}&limit=20&order=votes&reverse=true&hidebroken=true&has_extended_info=false`;
-      const resp = await fetch(url);
-      if (!resp.ok) throw new Error('API request failed');
-      const stations = await resp.json();
+    // all.api is round-robin DNS and can return a slow/dead mirror; de1 is a stable fallback.
+    const hosts = ['all.api.radio-browser.info', 'de1.api.radio-browser.info'];
+    const path = `/json/stations/search?tag=${encodeURIComponent(tag)}&limit=20&order=votes&reverse=true&hidebroken=true&has_extended_info=false`;
 
-      this.radioStations = stations.filter(s => s.url_resolved);
-
-      if (this.radioStations.length === 0) {
-        this.radioList.innerHTML = '<div class="radio-loading">No stations found</div>';
-        return;
+    let stations = null;
+    let lastErr = null;
+    for (const host of hosts) {
+      try {
+        const resp = await fetch(`https://${host}${path}`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        stations = await resp.json();
+        break;
+      } catch (err) {
+        lastErr = err;
       }
-
-      this.renderRadioStations();
-    } catch (err) {
-      console.error('Failed to load radio stations:', err);
-      this.radioList.innerHTML = '<div class="radio-loading">Failed to load stations</div>';
     }
+
+    if (!stations) {
+      console.error('Failed to load radio stations:', lastErr);
+      this.radioList.innerHTML = '<div class="radio-loading">Failed to load stations</div>';
+      return;
+    }
+
+    this.radioStations = stations.filter(s => s.url_resolved);
+    if (this.radioStations.length === 0) {
+      this.radioList.innerHTML = '<div class="radio-loading">No stations found</div>';
+      return;
+    }
+    this.renderRadioStations();
   }
 
   renderRadioStations() {

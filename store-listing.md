@@ -4,7 +4,11 @@ Reference document for the Developer Dashboard submission fields.
 
 ## Short description (manifest, under 132 chars)
 
-> Free focus timer with task tracking, ambient sounds, and internet radio -- right in your Chrome sidebar.
+> Focus timer with task tracking, ambient sounds, and internet radio -- right in your Chrome sidebar.
+
+## Single-purpose description (Developer Dashboard)
+
+> A Pomodoro focus timer that lives in Chrome's side panel, with task tracking and optional ambient audio to help users sustain deep work sessions.
 
 ## Detailed description
 
@@ -42,8 +46,8 @@ The entire extension UI lives in Chrome's side panel, giving you quick access wi
 ### host_permissions: *.api.radio-browser.info
 This host permission allows the extension to query the Radio Browser API (https://www.radio-browser.info), an open-source community database of internet radio stations. When a user opens the Radio tab and selects a genre, the extension sends a search request to this API to retrieve a list of matching stations. Only the genre tag is sent as a query parameter. No user data, personal information, or browsing history is transmitted.
 
-## CSP justification (media-src http://* https://*)
+## Reviewer note: external audio sources
 
-The extension requires broad media-src permissions because it plays audio streams from internet radio stations discovered at runtime via the Radio Browser API (an open-source community directory of 30,000+ stations). Station stream URLs span thousands of domains and cannot be predicted at build time. The media-src directive only affects audio loading -- script-src remains restricted to 'self' and object-src is 'none', maintaining a secure execution environment.
+The extension plays audio via the HTML `<audio>` element from internet radio stations discovered at runtime through the Radio Browser API (an open-source community directory of 30,000+ stations). Station stream URLs span thousands of domains and cannot be enumerated at build time. The curated Sounds tab also streams from a small set of providers (somafm.com, radioca.st, torontocast.com) that may rotate infrastructure.
 
-The curated Sounds tab also streams from multiple domains (somafm.com, radioca.st, torontocast.com, internet-radio.com, radio.mynoise.net) which may change as providers rotate infrastructure.
+No additional CSP or `host_permissions` entries are required for these media loads — `<audio>` and `<img>` element loads in MV3 extension pages are not gated by `host_permissions`, and the default extension-pages CSP permits them. The manifest CSP (`script-src 'self'; object-src 'none'`) keeps script execution locked down.
