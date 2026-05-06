@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pomodoro Timer with Music & Tasks — Chrome Extension</title>
+<meta name="description" content="Free Pomodoro focus timer with task tracking, ambient sounds, and live radio — right in your Chrome sidebar.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal: #1D9E75;
+    --teal-dark: #157a5b;
+    --teal-light: #e8f7f2;
+    --teal-mid: #b3e8d5;
+    --ink: #0e1a16;
+    --ink-mid: #2d4a3e;
+    --muted: #6b8f80;
+    --bg: #f5faf7;
+    --white: #ffffff;
+    --red: #E05050;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    overflow-x: hidden;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 40px;
+    background: rgba(245,250,247,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(29,158,117,0.1);
+  }
+  .nav-logo {
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'DM Serif Display', serif;
+    font-size: 17px; color: var(--ink); text-decoration: none;
+  }
+  .nav-logo svg { width: 32px; height: 32px; }
+  .nav-cta {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--teal); color: white;
+    padding: 10px 22px; border-radius: 100px;
+    font-size: 14px; font-weight: 600; text-decoration: none;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .nav-cta:hover { background: var(--teal-dark); transform: translateY(-1px); }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+    padding: 120px 24px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute; inset: 0; z-index: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 0%, rgba(29,158,117,0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 40% at 80% 80%, rgba(29,158,117,0.07) 0%, transparent 60%);
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--teal-light); color: var(--teal-dark);
+    border: 1px solid var(--teal-mid);
+    padding: 6px 14px; border-radius: 100px;
+    font-size: 12px; font-weight: 600; letter-spacing: 0.05em;
+    text-transform: uppercase; margin-bottom: 28px;
+    position: relative; z-index: 1;
+    animation: fadeUp 0.6s ease both;
+  }
+  .hero h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(42px, 7vw, 80px);
+    line-height: 1.05;
+    color: var(--ink);
+    max-width: 800px;
+    margin-bottom: 24px;
+    position: relative; z-index: 1;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+  .hero h1 em {
+    font-style: italic; color: var(--teal);
+  }
+  .hero p {
+    font-size: 18px; line-height: 1.7;
+    color: var(--muted); max-width: 520px;
+    margin-bottom: 40px;
+    position: relative; z-index: 1;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+  .hero-actions {
+    display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
+    position: relative; z-index: 1;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--teal); color: white;
+    padding: 16px 32px; border-radius: 100px;
+    font-size: 16px; font-weight: 600; text-decoration: none;
+    box-shadow: 0 4px 20px rgba(29,158,117,0.35);
+    transition: all 0.2s;
+  }
+  .btn-primary:hover { background: var(--teal-dark); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(29,158,117,0.4); }
+  .btn-secondary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: white; color: var(--ink);
+    padding: 16px 28px; border-radius: 100px;
+    font-size: 16px; font-weight: 500; text-decoration: none;
+    border: 1.5px solid rgba(29,158,117,0.2);
+    transition: all 0.2s;
+  }
+  .btn-secondary:hover { border-color: var(--teal); color: var(--teal); transform: translateY(-2px); }
+
+  /* ── MOCKUP ── */
+  .mockup-wrap {
+    margin-top: 72px; position: relative; z-index: 1;
+    animation: fadeUp 0.8s 0.4s ease both;
+    display: flex; justify-content: center; gap: 24px; align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .mockup-phone {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 24px 64px rgba(14,26,22,0.12), 0 4px 16px rgba(14,26,22,0.06);
+    overflow: hidden;
+    width: 260px;
+    border: 1px solid rgba(29,158,117,0.1);
+  }
+  .mockup-phone.offset { margin-top: 40px; }
+  .mockup-header {
+    background: #2d3748; padding: 10px 14px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .mockup-body { padding: 16px; background: #f0f4f3; }
+
+  /* Mini timer mockup */
+  .mini-mode-row { display: flex; gap: 6px; margin-bottom: 14px; }
+  .mini-pill {
+    padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .mini-pill.active { background: var(--teal); color: white; }
+  .mini-pill.inactive { background: white; color: #666; }
+  .mini-ring-wrap { display: flex; justify-content: center; margin-bottom: 14px; }
+  .mini-btns { display: flex; gap: 6px; justify-content: center; margin-bottom: 14px; }
+  .mini-btn {
+    padding: 7px 14px; border-radius: 10px; font-size: 11px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .mini-btn.go { background: var(--teal); color: white; }
+  .mini-btn.out { background: white; color: #333; border: 1px solid #ddd; }
+  .mini-section { background: white; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+  .mini-section-title { font-size: 11px; font-weight: 700; color: #333; margin-bottom: 6px; font-family: 'DM Sans', sans-serif; }
+  .mini-task-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .mini-task-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); flex-shrink: 0; }
+  .mini-task-done { width: 6px; height: 6px; border-radius: 50%; background: #ccc; flex-shrink: 0; }
+  .mini-task-text { font-size: 10px; color: #444; font-family: 'DM Sans', sans-serif; }
+  .mini-task-text.done { text-decoration: line-through; color: #aaa; }
+
+  /* Mini radio mockup */
+  .mini-genre-row { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
+  .mini-genre {
+    padding: 3px 8px; border-radius: 20px; font-size: 9px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif; border: 1px solid #ddd; color: #555;
+  }
+  .mini-genre.active { background: var(--teal); color: white; border-color: var(--teal); }
+  .mini-station {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border-radius: 8px; margin-bottom: 4px;
+    background: #f8f8f8;
+  }
+  .mini-station.playing { background: #e8f7f2; border: 1px solid var(--teal-mid); }
+  .mini-station-icon { width: 24px; height: 24px; border-radius: 6px; background: #ccc; flex-shrink: 0; display:flex; align-items:center; justify-content:center; }
+  .mini-station-info { flex: 1; min-width: 0; }
+  .mini-station-name { font-size: 10px; font-weight: 700; color: #222; font-family: 'DM Sans', sans-serif; }
+  .mini-station-sub { font-size: 9px; color: #888; font-family: 'DM Sans', sans-serif; }
+  .mini-play { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; display:flex; align-items:center; justify-content:center; }
+  .mini-play.playing { background: var(--teal); }
+  .mini-play.stopped { background: #eee; }
+
+  /* ── FEATURES ── */
+  .section { padding: 96px 24px; }
+  .section-inner { max-width: 1080px; margin: 0 auto; }
+  .section-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--teal);
+    margin-bottom: 14px;
+  }
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(32px, 4vw, 48px);
+    line-height: 1.15; color: var(--ink);
+    margin-bottom: 16px; max-width: 600px;
+  }
+  .section-sub {
+    font-size: 17px; line-height: 1.7;
+    color: var(--muted); max-width: 520px; margin-bottom: 56px;
+  }
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+  }
+  .feature-card {
+    background: white;
+    border: 1px solid rgba(29,158,117,0.1);
+    border-radius: 20px;
+    padding: 28px;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .feature-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(14,26,22,0.08); }
+  .feature-icon {
+    width: 48px; height: 48px; border-radius: 14px;
+    background: var(--teal-light);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 18px;
+  }
+  .feature-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px; color: var(--ink); margin-bottom: 10px;
+  }
+  .feature-desc { font-size: 14px; line-height: 1.7; color: var(--muted); }
+
+  /* ── DIFFERENTIATOR BAND ── */
+  .band {
+    background: var(--teal);
+    padding: 72px 24px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .band::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 60% 80% at 50% 50%, rgba(255,255,255,0.06) 0%, transparent 70%);
+  }
+  .band-inner { position: relative; z-index: 1; max-width: 680px; margin: 0 auto; }
+  .band h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(28px, 4vw, 44px);
+    color: white; line-height: 1.2; margin-bottom: 16px;
+  }
+  .band h2 em { font-style: italic; opacity: 0.8; }
+  .band p { font-size: 17px; color: rgba(255,255,255,0.78); line-height: 1.7; margin-bottom: 36px; }
+  .band-cta {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: white; color: var(--teal-dark);
+    padding: 16px 32px; border-radius: 100px;
+    font-size: 16px; font-weight: 700; text-decoration: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    transition: all 0.2s;
+  }
+  .band-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.2); }
+
+  /* ── STATS ── */
+  .stats { background: white; padding: 64px 24px; }
+  .stats-inner { max-width: 800px; margin: 0 auto; display: flex; gap: 0; flex-wrap: wrap; }
+  .stat {
+    flex: 1; min-width: 160px;
+    text-align: center; padding: 32px 24px;
+    border-right: 1px solid rgba(29,158,117,0.1);
+  }
+  .stat:last-child { border-right: none; }
+  .stat-number {
+    font-family: 'DM Serif Display', serif;
+    font-size: 48px; color: var(--teal); line-height: 1;
+    margin-bottom: 8px;
+  }
+  .stat-label { font-size: 13px; color: var(--muted); font-weight: 500; }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--ink);
+    padding: 48px 24px;
+    text-align: center;
+  }
+  footer p { font-size: 13px; color: rgba(255,255,255,0.4); margin-bottom: 8px; }
+  footer a { color: rgba(255,255,255,0.6); text-decoration: none; }
+  footer a:hover { color: var(--teal); }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes spin {
+    from { stroke-dashoffset: 289; }
+    to { stroke-dashoffset: 0; }
+  }
+  .ring-animate {
+    animation: spin 3s ease-in-out infinite alternate;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 640px) {
+    nav { padding: 14px 20px; }
+    .hero { padding: 100px 20px 60px; }
+    .mockup-phone.offset { margin-top: 0; }
+    .stat { border-right: none; border-bottom: 1px solid rgba(29,158,117,0.1); }
+    .stat:last-child { border-bottom: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">
+    <svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+      <rect x="12" y="12" width="104" height="104" rx="26" fill="#1D9E75"/>
+      <circle cx="64" cy="64" r="32" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="9"/>
+      <circle cx="64" cy="64" r="32" fill="none" stroke="white" stroke-width="9"
+        stroke-dasharray="150 51" stroke-linecap="round" transform="rotate(-90 64 64)"/>
+      <line x1="64" y1="64" x2="64" y2="47" stroke="white" stroke-width="4" stroke-linecap="round"/>
+      <line x1="64" y1="64" x2="77" y2="64" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+      <circle cx="64" cy="64" r="3.5" fill="white"/>
+    </svg>
+    Pomodoro Timer
+  </a>
+  <a href="https://chromewebstore.google.com" class="nav-cta" id="nav-cta-link">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    Add to Chrome — Free
+  </a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-badge">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--teal)"><circle cx="12" cy="12" r="10"/></svg>
+    Free Chrome Extension
+  </div>
+  <h1>Focus deeper.<br><em>Ship faster.</em></h1>
+  <p>A Pomodoro timer that lives in your Chrome sidebar — with task tracking, ambient sounds, and live internet radio built right in.</p>
+  <div class="hero-actions">
+    <a href="https://chromewebstore.google.com" class="btn-primary" id="hero-cta-link">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Add to Chrome — It's Free
+    </a>
+    <a href="#features" class="btn-secondary">
+      See Features
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+    </a>
+  </div>
+
+  <!-- MOCKUP -->
+  <div class="mockup-wrap">
+
+    <!-- Timer mockup -->
+    <div class="mockup-phone">
+      <div class="mockup-header">
+        <div class="dot" style="background:#ff5f57"></div>
+        <div class="dot" style="background:#febc2e"></div>
+        <div class="dot" style="background:#28c840"></div>
+      </div>
+      <div class="mockup-body">
+        <div style="background:white;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:10px;color:#888;font-family:'DM Sans',sans-serif;">
+          Working on: <strong style="color:#222">GCP study notes</strong>
+        </div>
+        <div class="mini-mode-row">
+          <span class="mini-pill active">Focus</span>
+          <span class="mini-pill inactive">Break</span>
+        </div>
+        <div class="mini-ring-wrap">
+          <svg width="110" height="110" viewBox="0 0 110 110">
+            <circle cx="55" cy="55" r="42" fill="none" stroke="#e8f7f2" stroke-width="8"/>
+            <circle cx="55" cy="55" r="42" fill="none" stroke="#1D9E75" stroke-width="8"
+              stroke-dasharray="197 66" stroke-linecap="round" class="ring-animate"
+              transform="rotate(-90 55 55)"/>
+            <text x="55" y="50" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="18" font-weight="600" fill="#0e1a16">18:43</text>
+            <text x="55" y="65" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" fill="#6b8f80">focus</text>
+          </svg>
+        </div>
+        <div class="mini-btns">
+          <span class="mini-btn out">Reset</span>
+          <span class="mini-btn go">Pause</span>
+          <span class="mini-btn out">Skip</span>
+        </div>
+        <div class="mini-section">
+          <div class="mini-section-title">Tasks</div>
+          <div class="mini-task-row"><div class="mini-task-done"></div><div class="mini-task-text done">Morning standup</div></div>
+          <div class="mini-task-row"><div class="mini-task-dot"></div><div class="mini-task-text">GCP study notes</div></div>
+          <div class="mini-task-row"><div class="mini-task-dot"></div><div class="mini-task-text">Review PR #412</div></div>
+        </div>
+        <div class="mini-section" style="display:flex;gap:16px;">
+          <div style="flex:1;text-align:center;">
+            <div style="font-size:18px;font-weight:700;color:#1D9E75;font-family:'DM Sans',sans-serif;">3</div>
+            <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.06em;font-family:'DM Sans',sans-serif;">Pomodoros</div>
+          </div>
+          <div style="flex:1;text-align:center;">
+            <div style="font-size:18px;font-weight:700;color:#1D9E75;font-family:'DM Sans',sans-serif;">75m</div>
+            <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.06em;font-family:'DM Sans',sans-serif;">Focus Time</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Radio mockup -->
+    <div class="mockup-phone offset">
+      <div class="mockup-header">
+        <div class="dot" style="background:#ff5f57"></div>
+        <div class="dot" style="background:#febc2e"></div>
+        <div class="dot" style="background:#28c840"></div>
+      </div>
+      <div class="mockup-body">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div style="font-size:13px;font-weight:700;color:#222;font-family:'DM Sans',sans-serif;">Music</div>
+          <div style="display:flex;gap:6px;">
+            <span style="font-size:10px;padding:4px 10px;border-radius:20px;background:white;color:#555;font-family:'DM Sans',sans-serif;">Sounds</span>
+            <span style="font-size:10px;padding:4px 10px;border-radius:20px;background:#1D9E75;color:white;font-family:'DM Sans',sans-serif;">Radio</span>
+          </div>
+        </div>
+        <div class="mini-genre-row">
+          <span class="mini-genre active">Ambient</span>
+          <span class="mini-genre">Lo-fi</span>
+          <span class="mini-genre">Classical</span>
+          <span class="mini-genre">Jazz</span>
+          <span class="mini-genre">Chill</span>
+        </div>
+        <div class="mini-station playing">
+          <div class="mini-station-icon" style="background:#1D9E75;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          </div>
+          <div class="mini-station-info">
+            <div class="mini-station-name">ABC Lounge Radio</div>
+            <div class="mini-station-sub">France · ambient, chillout</div>
+          </div>
+          <div class="mini-play playing">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          </div>
+        </div>
+        <div class="mini-station">
+          <div class="mini-station-icon" style="background:#555;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          </div>
+          <div class="mini-station-info">
+            <div class="mini-station-name">SomaFM Drone Zone</div>
+            <div class="mini-station-sub">US · atmospheric, chillout</div>
+          </div>
+          <div class="mini-play stopped">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="#666"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </div>
+        </div>
+        <div class="mini-station">
+          <div class="mini-station-icon" style="background:#888;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          </div>
+          <div class="mini-station-info">
+            <div class="mini-station-name">Total Instrumental</div>
+            <div class="mini-station-sub">Germany · ambient, electronic</div>
+          </div>
+          <div class="mini-play stopped">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="#666"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </div>
+        </div>
+        <div style="margin-top:10px;padding:8px 10px;background:var(--teal-light);border-radius:8px;display:flex;align-items:center;gap:8px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#1D9E75"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          <span style="font-size:10px;font-weight:600;color:#1D9E75;font-family:'DM Sans',sans-serif;">ABC Lounge Radio</span>
+          <span style="font-size:10px;color:#888;margin-left:auto;font-family:'DM Sans',sans-serif;">50%</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stats-inner">
+    <div class="stat">
+      <div class="stat-number">Free</div>
+      <div class="stat-label">Always, no subscription</div>
+    </div>
+    <div class="stat">
+      <div class="stat-number">0</div>
+      <div class="stat-label">Data collected</div>
+    </div>
+    <div class="stat">
+      <div class="stat-number">∞</div>
+      <div class="stat-label">Radio stations via Radio Browser</div>
+    </div>
+    <div class="stat">
+      <div class="stat-number">MV3</div>
+      <div class="stat-label">Latest Chrome extension standard</div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <div class="section-inner">
+    <div class="section-label">Features</div>
+    <h2 class="section-title">Everything you need.<br>Nothing you don't.</h2>
+    <p class="section-sub">Built for people who do deep work. No bloat, no accounts, no ads. Just focus.</p>
+    <div class="features-grid">
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <div class="feature-title">Sidebar Timer</div>
+        <div class="feature-desc">Lives in Chrome's side panel — always accessible alongside whatever you're working on. No tab-switching, no popups that disappear.</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+        </div>
+        <div class="feature-title">Task Tracking</div>
+        <div class="feature-desc">Add tasks, mark the active one, and watch your progress accumulate. The active task is always pinned to the top so you stay intentional.</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+          </svg>
+        </div>
+        <div class="feature-title">Live Internet Radio</div>
+        <div class="feature-desc">Stream thousands of stations from Radio Browser — Ambient, Lo-fi, Classical, Jazz, Chill, Nature — with one click. SomaFM, ABC Lounge, and more.</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+          </svg>
+        </div>
+        <div class="feature-title">Ambient Sounds</div>
+        <div class="feature-desc">Curated focus sounds — rain, nature, white noise, and more. Toggle between sounds and radio with a single tap.</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+        </div>
+        <div class="feature-title">Daily Stats</div>
+        <div class="feature-desc">Track Pomodoros completed and total focus time each day. Stats sync across your Chrome devices automatically and reset each morning.</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+        <div class="feature-title">Private by Design</div>
+        <div class="feature-desc">No accounts, no signups, no ads. Your tasks and settings stay in your browser via Chrome's built-in storage. Nothing leaves your machine.</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- BAND -->
+<div class="band">
+  <div class="band-inner">
+    <h2>The only Pomodoro timer<br>with <em>radio built in.</em></h2>
+    <p>Most focus timers leave background sound as a separate tab. This one bundles thousands of live radio stations directly into the same panel as your timer and tasks.</p>
+    <a href="https://chromewebstore.google.com" class="band-cta" id="band-cta-link">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Add to Chrome — Free
+    </a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <p>Built by <a href="https://github.com/damianperreira">Damian Perreira</a> · <a href="privacy-policy.html">Privacy Policy</a></p>
+  <p style="margin-top:6px;">Pomodoro® is a registered trademark of Francesco Cirillo. This extension is not affiliated with Francesco Cirillo.</p>
+</footer>
+
+</body>
+</html>
